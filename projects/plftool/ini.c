@@ -52,7 +52,6 @@ const s_ini_handle* ini_open(const char* filename)
 {
     FILE* fp;
     s_ini_handle* retval = 0;
-    size_t read_bytes;
     unsigned int file_size = 0;
 
     if (filename == 0)
@@ -82,15 +81,8 @@ const s_ini_handle* ini_open(const char* filename)
     retval->sections = 0;
     retval->parameters = 0;
 
-    read_bytes = fread(retval->buffer, file_size, 1, fp);
+    fread(retval->buffer, file_size, 1, fp);
     fclose(fp);
-
-	if (read_bytes != file_size)
-	{
-		free(retval->buffer);
-		free(retval);
-		return 0;
-	}
 
     ini_read_ini(retval);
     free(retval->buffer);
