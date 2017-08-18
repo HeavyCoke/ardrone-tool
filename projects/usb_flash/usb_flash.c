@@ -31,7 +31,9 @@
 #define VERSION_BUGFIX 1
 
 #define PARROT_VENDOR_ID 0x19CF
-#define PARROT_PRODUCT_ID 0x1000
+#define PARROT_PRODUCT_ID1 0x1000
+#define PARROT_PRODUCT_ID2 0x2000
+#define PARROT_PRODUCT_ID3 0x0001
 
 #define MAX_RECONNECT_TRY 10
 
@@ -59,9 +61,14 @@ typedef struct s_command_args_tag
 s_command_args command_args =
 {
         .mode = MODE_FLASH,
+        .bootloader_file = "fc6050_inst_usb_bootldr.bin",
+        .installer_file = "fc6050_lucie_128_updater_usbd_installer.plf",
+        .payload_file = "fc6050_lucie_128_updater_usbd_payload.plf"
+#if 0
         .bootloader_file = "ardrone_usb_bootloader.bin",
         .installer_file = "ardrone_installer.plf",
         .payload_file = "ardrone_update.plf"
+#endif
 };
 
 int start_usb(int* p_interface, usb_dev_handle** p_dev_handle)
@@ -80,7 +87,9 @@ int start_usb(int* p_interface, usb_dev_handle** p_dev_handle)
 		for (dev = bus->devices; dev; dev=dev->next)
 		{
 			if (dev->descriptor.idVendor == PARROT_VENDOR_ID &&
-					dev->descriptor.idProduct == PARROT_PRODUCT_ID)
+					( dev->descriptor.idProduct == PARROT_PRODUCT_ID1 || 
+					  dev->descriptor.idProduct == PARROT_PRODUCT_ID2 || 
+					  dev->descriptor.idProduct == PARROT_PRODUCT_ID3 ))
 			{
 					char buffer[256];
 
@@ -111,10 +120,9 @@ int start_usb(int* p_interface, usb_dev_handle** p_dev_handle)
 #endif
 					*p_interface = usb_claim_interface(*p_dev_handle, 0);
 
-
-
 					if (*p_interface < 0)
 					{
+						perror("Error: ");
 						usb_close(*p_dev_handle);
 						printf("usb_claim_interface failed!\n");
 						*p_interface = -1;
@@ -153,7 +161,8 @@ int reconnect_usb(int* p_interface, usb_dev_handle** p_dev_handle)
     for (i = 0; i < MAX_RECONNECT_TRY; ++i)
     {
         sleep(1);
-        printf("Try [%02d/%02d] to connect to VID: 0x%04x PID: 0x%04x\n", i, MAX_RECONNECT_TRY, PARROT_VENDOR_ID, PARROT_PRODUCT_ID);
+        printf("Try [%02d/%02d] to connect to VID: 0x%04x PID1: 0x%04x or PID2: 0x%04x\n", 
+			i, MAX_RECONNECT_TRY, PARROT_VENDOR_ID, PARROT_PRODUCT_ID1, PARROT_PRODUCT_ID2);
         if (start_usb(p_interface, p_dev_handle) == 0)
         {
             return 0;
@@ -191,6 +200,7 @@ int upload_file (usb_dev_handle* devhandle, int interface, const char* filename,
 
 		if (usb_bulk_write(devhandle, 0x01, f_buffer, bytes_read, timeout) < 0)
 		{
+			perror("Error: ");
 			printf("  usb_bulk_write failed ==> FAILED!\n");
 			fclose(fp);
 			free(f_buffer);
@@ -293,6 +303,7 @@ int do_flash()
 
     if ( usb_bulk_write(devhandle, 0x01, (char*)&data[0], 3, 5000 ) < 0)
     {
+	perror("Error: ..");
         printf("!!! usb_bulk_write failed..\n");
         usb_release_interface(devhandle, interface);
         usb_close(devhandle);
