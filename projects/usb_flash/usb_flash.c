@@ -231,6 +231,12 @@ int upload_file (usb_dev_handle* devhandle, int interface, const char* filename,
 
 int parse_options(int argc, char** argv)
 {
+#if 1
+    command_args.mode = MODE_FLASH;
+    command_args.bootloader_file = argv[1];
+    command_args.installer_file = argv[2];
+    command_args.payload_file = argv[3];
+#endif 
 
     while(1)
     {
